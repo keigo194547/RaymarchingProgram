@@ -17,6 +17,7 @@ Shader "Unlit/first"
             #pragma fragment frag
 
             #include "UnityCG.cginc"
+            #include "Lighting.cginc"
 
             struct appdata {
                 float4 vertex : POSITION;
@@ -33,9 +34,19 @@ Shader "Unlit/first"
             float4 _MainTex_ST;
             float _Radius;
 
-            // 中心との距離から円を描画
-            float sphere(float3 pos) {
+            float sphere(float3 pos) {  // 中心との距離から円を描画
                 return length(pos) - _Radius;
+            }
+
+            float3 getNormal(float3 pos) {  // 法線を取得
+                
+                float d = 0.001; // δ
+
+                // 法線の公式より、各変数の偏微分から計算
+                return normalize(float3(
+                    sphere(pos + float3(d, 0, 0)) - sphere(pos + float3(-d, 0, 0)),
+                    sphere(pos + float3(0, d, 0)) - sphere(pos + float3(0, -d, 0)),
+                    sphere(pos + float3(0, 0, d)) - sphere(pos + float3(0, 0, -d))));
             }
 
             v2f vert (appdata v) {
@@ -48,22 +59,25 @@ Shader "Unlit/first"
 
             fixed4 frag (v2f i) : SV_Target {
                 float3 pos = i.pos.xyz;
-                // レイのベクトル
-                float3 rayDir = normalize(pos.xyz - _WorldSpaceCameraPos);
+                float3 rayDir = normalize(pos.xyz - _WorldSpaceCameraPos); // レイのベクトル
                 int stepNum = 30;
 
                 for (int i = 0; i < stepNum; i++) {
-                    // レイを進める距離
-                    float marcingDist = sphere(pos);
-                    // 衝突したら、ピクセルを白くする
-                    if (marcingDist < 0.0001) {
-                        return 1.0;
+
+                    float marcingDist = sphere(pos);   // レイを進める距離
+
+                    if (marcingDist < 0.001) {  // 衝突検知
+                        float3 lightDir = _WorldSpaceLightPos0.xyz;
+                        float3 normal = getNormal(pos);
+                        float3 lightColor = _LightColor0;
+                        fixed4 col = fixed4(lightColor * max(dot(normal, lightDir), 0), 1.0); // 内積によって色を変化させる
+
+                        col.rgb += fixed3(0.2f, 0.2f, 0.2f); // 環境光のオフセット
+                        return col;
                     }
-                    // レイを進める
-                    pos.xyz += marcingDist * rayDir.xyz;
+                    pos.xyz += marcingDist * rayDir.xyz; // レイを進める
                 }
-                // stepNum回レイを進めても衝突しなかったらピクセルを透明にする
-                return 0;
+                return 0;    // stepNum回レイを進めても衝突しなかったらピクセルを透明にする
             }
             ENDCG
         }
