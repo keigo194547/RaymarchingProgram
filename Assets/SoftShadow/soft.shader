@@ -49,7 +49,7 @@ Shader "Unlit/soft"
 
 			float _Radius,_BlurShadow,_Speed;
 
-			float sphere(float3 pos)
+			float sphere(float3 pos) // 中心との距離から球を描画
             {
 				// float3 tmp = pos;
 				// tmp.y += 0.3 * sin(_Time.x * 50);
@@ -66,13 +66,13 @@ Shader "Unlit/soft"
 
             // 平面の距離関数
 			//https://qiita.com/muripo_life/items/074f69a5f0bac74e71e6
-			float plane(float3 pos)
+			float plane(float3 pos) // planeの描画
 			{
 				float4 n = float4(0.0, 0.8, 0.0, 1);
   				return dot(pos, n.xyz) + n.w;
 			}
 
-			float getDist(float3 pos){
+			float getDist(float3 pos){ // planeと球との距離
 				float time = (sin(_Time.y * _Speed) + 1) * 0.5;
 				// float morph = lerp(box(pos), sphere(pos), time);
 				return min(plane(pos), sphere(pos));
@@ -88,7 +88,7 @@ Shader "Unlit/soft"
                 ));
             }
 
-			//ソフトシャドウの算出式
+			//ソフトシャドウの算出式,  光源に向かってレイを飛ばす
 			//https://wgld.org/d/glsl/g020.html
 			float genShadow(float3 pos, float3 lightDir){
 				float marchingDist = 0.0;
@@ -97,12 +97,14 @@ Shader "Unlit/soft"
 				float shadowCoef = 0.5;
 				for(float t = 0.0; t < 50.0; t++){
 					marchingDist = getDist(pos + lightDir * c);
-					if(marchingDist < 0.001){
+					if(marchingDist < 0.001){ // hitしたら影を落とす
 						return shadowCoef;
 					}
 					r = min(r, marchingDist * _BlurShadow / c);
 					c += marchingDist;
 				}
+
+				// hitしなかった場合、反影を描画
 				return 1.0 - shadowCoef + r * shadowCoef;
 			}
 
