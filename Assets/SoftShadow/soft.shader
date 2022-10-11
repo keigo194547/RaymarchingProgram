@@ -57,13 +57,6 @@ Shader "Unlit/soft"
                 return length(pos) - _Radius;
             }
 
-			float box( float3 pos)
-			{
-				float3 b = _Radius;
-				float3 d = abs(pos) - b;
-				return length(max(d,0.0))+ min(max(d.x,max(d.y,d.z)),0.0);
-			}
-
             // 平面の距離関数
 			//https://qiita.com/muripo_life/items/074f69a5f0bac74e71e6
 			float plane(float3 pos) // planeの描画
