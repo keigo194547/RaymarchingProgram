@@ -154,26 +154,13 @@ Shader "Unlit/RaymarchingMaterial"
                 // UVを -1～1 の範囲に変換します
                 float2 uv = 2.0 * input.uv - 1.0;
                 
-                // アスペクト比を考慮します
-                uv.x *= _ScreenParams.x / _ScreenParams.y;
+                // カメラの位置
+                float3 cameraOrigin = _WorldSpaceCameraPos;
                 
-                // カメラの情報
-                float3 cameraOrigin = float3(0, 1, -3);// カメラの位置
-                float3 cameraTarget = float3(0, 1, 0);// カメラのターゲット
-                float3 cameraUp = float3(0, 1, 0);// カメラのUPベクトル
-                float cameraFov = 60;// カメラのFOV
-                
-                // UVに対応するレイを計算
-                float3 forward = normalize(cameraTarget - cameraOrigin);
-                float3 right = normalize(cross(cameraUp, forward));
-                float3 up = normalize(cross(forward, right));
-                
-                float PI = 3.14159265359;
-                float3 ray = normalize(
-                    right * uv.x +
-                    up * uv.y +
-                    forward / tan(cameraFov / 360 * PI)
-                );
+                // カメラ行列からレイを生成します
+                float4 clipRay = float4(uv, 1, 1);// クリップ空間のレイ
+                float3 viewRay = normalize(mul(unity_CameraInvProjection, clipRay).xyz);// ビュー空間のレイ
+                float3 ray = mul(transpose((float3x3)UNITY_MATRIX_V), viewRay);// ワールド空間のレイ
                 
                 // レイマーチング
                 float t = 0.0;// レイの進んだ距離
